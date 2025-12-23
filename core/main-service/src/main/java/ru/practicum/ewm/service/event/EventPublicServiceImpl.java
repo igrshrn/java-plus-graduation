@@ -60,6 +60,7 @@ public class EventPublicServiceImpl implements EventPublicService {
     }
 
     @Override
+    @Transactional
     public EventFullDto getById(Long eventId, HttpServletRequest httpServletRequest) {
         Event event = getById(eventId);
         if (event.getState() != EventState.PUBLISHED) {
@@ -76,6 +77,7 @@ public class EventPublicServiceImpl implements EventPublicService {
         log.info("Метод getById, длина списка stats: {}", stats.size());
         Long views = stats.isEmpty() ? 0L : stats.getFirst().getHits();
         event.setViews(views);
+        eventRepository.save(event);
         log.info("Метод getById, количество сохраняемых просмотров: {}", views);
 
         EventFullDto eventFullDto = eventMapper.toEventFullDto(event);
