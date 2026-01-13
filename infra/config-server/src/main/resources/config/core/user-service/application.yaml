@@ -1,0 +1,41 @@
+server:
+  port: 0
+
+spring:
+  sql:
+    init:
+      mode: always
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: Europe/Moscow
+  mvc:
+    format:
+      date-time: yyyy-MM-dd HH:mm:ss
+  datasource:
+    driverClassName: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/user_service
+    username: postgres
+    password: postgres
+
+stats-server:
+  url: http://stats-server
+
+logging:
+  level:
+    org.springframework.orm.jpa: WARN
+    org.springframework.transaction: WARN
+    org.springframework.transaction.interceptor: INFO
+    org.springframework.orm.jpa.JpaTransactionManager: WARN
+    org.zalando.logbook: INFO
+    ru.practicum: DEBUG
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://${eureka.instance.hostname:localhost}:${eureka.instance.port:8761}/eureka/
