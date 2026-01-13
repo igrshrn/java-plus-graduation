@@ -31,32 +31,13 @@ import static org.junit.jupiter.api.Assertions.*;
 @ContextConfiguration(initializers = TestContainer.class)
 class StatsServiceImplTest {
 
-    @TestConfiguration
-    static class Config {
-
-        @Bean
-        @Primary
-        public StatsServiceImpl statsService(HitRepository repository, HitMapper mapper) {
-            return new StatsServiceImpl(repository, mapper);
-        }
-
-        @Bean
-        @Primary
-        public HitMapper mapper() {
-            return Mappers.getMapper(HitMapper.class);
-        }
-    }
-
+    private static final String URI = "/address";
+    private final Faker faker = new Faker();
     @Autowired
     private StatsServiceImpl statsService;
-
-    private final Faker faker = new Faker();
-
     private EndpointHit dto;
 
     private LocalDateTime now;
-
-    private static final String URI = "/address";
 
     @BeforeEach
     void init() {
@@ -204,5 +185,21 @@ class StatsServiceImplTest {
                             .map(ViewStats::getHits).orElse(-1L)
             );
         });
+    }
+
+    @TestConfiguration
+    static class Config {
+
+        @Bean
+        @Primary
+        public StatsServiceImpl statsService(HitRepository repository, HitMapper mapper) {
+            return new StatsServiceImpl(repository, mapper);
+        }
+
+        @Bean
+        @Primary
+        public HitMapper mapper() {
+            return Mappers.getMapper(HitMapper.class);
+        }
     }
 }

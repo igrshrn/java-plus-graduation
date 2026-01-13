@@ -9,6 +9,7 @@ import java.util.List;
 
 public interface RequestRepository extends JpaRepository<ParticipationRequest, Long> {
     List<ParticipationRequest> findByRequesterId(Long requesterId);
+
     List<ParticipationRequest> findByEventId(Long eventId);
 
     @Query("SELECT COUNT(pr) FROM ParticipationRequest pr WHERE pr.eventId = :eventId AND pr.status = 'CONFIRMED'")

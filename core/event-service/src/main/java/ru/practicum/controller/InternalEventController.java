@@ -17,26 +17,32 @@ public class InternalEventController implements EventClient {
 
     private final EventPublicService eventPublicService;
 
+    @Override
     public EventShortDto getEventById(Long id) {
         return eventPublicService.getEventShort(id);
     }
 
+    @Override
     public EventFullDto getEventFullById(Long id) {
         return eventPublicService.getEventFullInternal(id);
     }
 
+    @Override
     public List<EventShortDto> getEventsByIds(List<Long> ids) {
         return eventPublicService.getEventsShortByIds(ids);
     }
 
+    @Override
     public List<EventFullDto> getEventsFullByIds(List<Long> ids) {
         return List.of();
     }
 
+    @Override
     public Long countEventsByCategoryId(Long categoryId) {
         return eventPublicService.countEventsByCategoryId(categoryId);
     }
 
+    @Override
     public void updateConfirmedRequests(Long eventId, Long confirmedRequests) {
         eventPublicService.updateConfirmedRequests(eventId, confirmedRequests);
     }

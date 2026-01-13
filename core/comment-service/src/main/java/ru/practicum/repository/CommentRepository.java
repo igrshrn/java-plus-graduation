@@ -12,8 +12,11 @@ import java.util.Optional;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Comment> findByEventIdAndStatus(Long eventId, CommentStatus status, Pageable pageable);
+
     List<Comment> findByAuthorId(Long authorId, Pageable pageable);
+
     Optional<Comment> findByIdAndAuthorId(Long id, Long authorId);
+
     boolean existsByEventIdAndAuthorId(Long eventId, Long authorId);
 
     List<Comment> findByStatusOrderByCreatedDesc(CommentStatus status, Pageable pageable);

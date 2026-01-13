@@ -58,7 +58,7 @@ public class EventPrivateServiceImpl implements EventPrivateService {
             log.info("event.getId() ={}, actualConfirmed = {}", actualConfirmed, event.getId());
             confirmedRequestsMap.put(event.getId(), actualConfirmed);
         }
-        System.out.println("confirmedRequestsMap: " + confirmedRequestsMap);
+
         Set<Long> categoryIds = events.stream()
                 .map(Event::getCategoryId)
                 .collect(Collectors.toSet());
