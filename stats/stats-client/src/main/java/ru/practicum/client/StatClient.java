@@ -23,11 +23,9 @@ import java.util.List;
 @Slf4j
 public class StatClient extends ResponseGenerator {
 
-    private final RestClient restClient;
-
     private static final DateTimeFormatter FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
+    private final RestClient restClient;
     @Value("${stat-svc-service.url}")
     private String statServiceUrl;
 
