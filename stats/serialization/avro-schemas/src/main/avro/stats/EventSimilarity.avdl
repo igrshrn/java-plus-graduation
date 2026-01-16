@@ -7,5 +7,4 @@ protocol EventSimilarityProtocol {
 		double score;
 		timestamp_ms timestamp;
 	}
-
 }

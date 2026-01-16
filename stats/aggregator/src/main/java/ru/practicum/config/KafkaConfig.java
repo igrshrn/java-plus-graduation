@@ -9,9 +9,9 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import ru.practicum.deserializer.UserActionAvroDeserializer;
+import ewm.deserializer.UserActionAvroDeserializer;
 import ru.practicum.ewm.stats.avro.UserActionAvro;
-import ru.practicum.serializer.AvroSerializer;
+import ewm.serializer.AvroSerializer;
 
 import java.util.Properties;
 

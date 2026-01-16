@@ -1,4 +1,4 @@
-package ru.practicum.mapper;
+package ru.practicum.stats.collector.mapper;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

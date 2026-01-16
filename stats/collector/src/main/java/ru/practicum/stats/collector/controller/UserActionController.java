@@ -1,20 +1,19 @@
-package ru.practicum.controller;
+package ru.practicum.stats.collector.controller;
 
 import com.google.protobuf.Empty;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
 import ru.practicum.ewm.stats.proto.UserActionControllerGrpc;
 import ru.practicum.ewm.stats.proto.UserActionProto;
-import ru.practicum.service.UserActionHandler;
+import ru.practicum.stats.collector.service.UserActionHandler;
 
 @Slf4j
 @GrpcService
-@RequiredArgsConstructor(access = AccessLevel.PUBLIC)
+@RequiredArgsConstructor
 public class UserActionController extends UserActionControllerGrpc.UserActionControllerImplBase {
 
     private final UserActionHandler handler;

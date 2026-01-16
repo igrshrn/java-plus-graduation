@@ -1,15 +1,13 @@
 package ru.practicum.config;
 
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import ru.practicum.deserializer.EventSimilarityAvroDeserializer;
-import ru.practicum.deserializer.UserActionAvroDeserializer;
+import ewm.deserializer.EventSimilarityAvroDeserializer;
+import ewm.deserializer.UserActionAvroDeserializer;
 import ru.practicum.ewm.stats.avro.EventSimilarityAvro;
 import ru.practicum.ewm.stats.avro.UserActionAvro;
 

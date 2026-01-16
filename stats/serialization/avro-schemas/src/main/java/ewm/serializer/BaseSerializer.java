@@ -1,4 +1,4 @@
-package ru.practicum.serializer;
+package ewm.serializer;
 
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumWriter;
@@ -11,24 +11,25 @@ import org.apache.kafka.common.serialization.Serializer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-public class AvroSerializer implements Serializer<SpecificRecordBase> {
+public class BaseSerializer implements Serializer<SpecificRecordBase> {
 
     private final EncoderFactory encoderFactory = EncoderFactory.get();
     private BinaryEncoder encoder;
 
     @Override
     public byte[] serialize(String topic, SpecificRecordBase data) {
-
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] result = null;
+            encoder = encoderFactory.binaryEncoder(out, encoder);
             if (data != null) {
                 DatumWriter<SpecificRecordBase> writer = new SpecificDatumWriter<>(data.getSchema());
-                encoder = encoderFactory.binaryEncoder(out, encoder);
                 writer.write(data, encoder);
                 encoder.flush();
+                result = out.toByteArray();
             }
-            return out.toByteArray();
+            return result;
         } catch (IOException ex) {
-            throw new SerializationException(String.format("Ошибка сериализации данных для топика: [%s]", topic));
+            throw new SerializationException("Error writing record", ex);
         }
     }
 }

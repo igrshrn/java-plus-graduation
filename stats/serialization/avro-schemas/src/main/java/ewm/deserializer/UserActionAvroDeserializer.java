@@ -1,4 +1,4 @@
-package ru.practicum.deserializer;
+package ewm.deserializer;
 
 import ru.practicum.ewm.stats.avro.UserActionAvro;
 
