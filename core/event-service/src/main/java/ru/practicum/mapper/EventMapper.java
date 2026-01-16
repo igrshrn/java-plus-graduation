@@ -27,7 +27,6 @@ public interface EventMapper {
                 .requestModeration(event.getRequestModeration())
                 .state(event.getState() != null ? event.getState().name() : null)
                 .title(event.getTitle())
-                .views(event.getViews())
                 .commentsCount(0L)
                 .build();
     }
@@ -42,7 +41,6 @@ public interface EventMapper {
                 .initiator(initiator)
                 .paid(event.getPaid())
                 .title(event.getTitle())
-                .views(event.getViews())
                 .commentsCount(0L)
                 .build();
     }
@@ -61,7 +59,6 @@ public interface EventMapper {
                 .initiator(initiator)
                 .paid(event.getPaid())
                 .title(event.getTitle())
-                .views(event.getViews())
                 .commentsCount(0L)
                 .build();
     }

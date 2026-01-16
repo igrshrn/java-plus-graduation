@@ -33,4 +33,9 @@ public class InternalRequestController implements RequestClient {
     public Long getConfirmedRequestsCount(Long eventId) {
         return requestService.getConfirmedRequestsCount(eventId);
     }
+
+    @Override
+    public boolean isUserTakePart(Long userId, Long eventId) {
+        return requestService.isUserTakePart(userId, eventId);
+    }
 }

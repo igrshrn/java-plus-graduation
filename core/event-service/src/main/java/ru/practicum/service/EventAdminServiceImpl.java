@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.client.AnalyzerGrpcClient;
 import ru.practicum.client.category.CategoryClient;
 import ru.practicum.client.user.UserClient;
 import ru.practicum.dto.category.CategoryDto;
@@ -17,6 +18,8 @@ import ru.practicum.dto.user.UserShortDto;
 import ru.practicum.entity.Event;
 import ru.practicum.entity.EventAdminFilter;
 import ru.practicum.entity.UpdateEventAdminRequest;
+import ru.practicum.ewm.stats.proto.InteractionsCountRequestProto;
+import ru.practicum.ewm.stats.proto.RecommendedEventProto;
 import ru.practicum.exception.ConflictException;
 import ru.practicum.exception.ValidationException;
 import ru.practicum.mapper.EventMapper;
@@ -44,6 +47,7 @@ public class EventAdminServiceImpl implements EventAdminService {
     private final EventMapper eventMapper;
     private final LocationMapper locationMapper;
     private final EventPublicService eventPublicService;
+    private final AnalyzerGrpcClient analyzerGrpcClient;
 
     @Override
     public List<EventFullDto> getAll(EventAdminFilter adminFilter, Integer from, Integer size) {
@@ -61,15 +65,23 @@ public class EventAdminServiceImpl implements EventAdminService {
         Map<Long, UserShortDto> authorMap = fetchAuthors(authorIds);
         Map<Long, CategoryDto> categoryMap = fetchCategories(categoryIds);
 
-        return events.stream()
+        List<EventFullDto> result = events.stream()
                 .map(event -> {
                     UserShortDto author = authorMap.get(event.getInitiatorId());
                     CategoryDto category = categoryMap.get(event.getCategoryId());
                     LocationDto location = locationMapper.toLocationDto(event.getLocation());
+
                     return eventMapper.toEventFullDto(event, author, category, location);
                 })
                 .sorted(Comparator.comparingLong(EventFullDto::getId).reversed())
                 .toList();
+
+        Set<Long> eventIds = result.stream().map(EventFullDto::getId).collect(Collectors.toSet());
+        Map<Long, Double> ratings = fetchEventRatings(eventIds);
+
+        result.forEach(dto -> dto.setRating(ratings.getOrDefault(dto.getId(), 0.0)));
+
+        return result;
     }
 
     private Map<Long, UserShortDto> fetchAuthors(Set<Long> authorIds) {
@@ -84,6 +96,22 @@ public class EventAdminServiceImpl implements EventAdminService {
         return categories.stream().collect(Collectors.toMap(CategoryDto::getId, Function.identity()));
     }
 
+    private Map<Long, Double> fetchEventRatings(Set<Long> eventIds) {
+        if (eventIds.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        InteractionsCountRequestProto request = InteractionsCountRequestProto.newBuilder()
+                .addAllEventId(eventIds)
+                .build();
+
+        List<RecommendedEventProto> responses = analyzerGrpcClient.getInteractionsCount(request);
+        return responses.stream()
+                .collect(Collectors.toMap(
+                        RecommendedEventProto::getEventId,
+                        RecommendedEventProto::getScore
+                ));
+    }
     @Override
     @Transactional
     public EventFullDto update(UpdateEventAdminRequest request, Long eventId) {
@@ -144,7 +172,16 @@ public class EventAdminServiceImpl implements EventAdminService {
         UserShortDto author = userClient.getUserById(updatedEvent.getInitiatorId());
         CategoryDto category = categoryClient.getCategoryById(updatedEvent.getCategoryId());
         LocationDto location = locationMapper.toLocationDto(updatedEvent.getLocation());
-        return eventMapper.toEventFullDto(updatedEvent, author, category, location);
+        EventFullDto dto = eventMapper.toEventFullDto(updatedEvent, author, category, location);
+
+        InteractionsCountRequestProto interactionsRequest = InteractionsCountRequestProto.newBuilder()
+                .addEventId(dto.getId())
+                .build();
+        List<RecommendedEventProto> ratingResponse = analyzerGrpcClient.getInteractionsCount(interactionsRequest);
+        double rating = ratingResponse.isEmpty() ? 0.0 : ratingResponse.getFirst().getScore();
+        dto.setRating(rating);
+
+        return dto;
     }
 
     private void setEventDate(Event event, String date) {

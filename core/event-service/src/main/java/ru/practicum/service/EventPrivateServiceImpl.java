@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.client.AnalyzerGrpcClient;
 import ru.practicum.client.category.CategoryClient;
 import ru.practicum.client.request.RequestClient;
 import ru.practicum.client.user.UserClient;
@@ -17,6 +18,8 @@ import ru.practicum.dto.user.UserShortDto;
 import ru.practicum.entity.Event;
 import ru.practicum.entity.Location;
 import ru.practicum.entity.UpdateEventUserRequest;
+import ru.practicum.ewm.stats.proto.InteractionsCountRequestProto;
+import ru.practicum.ewm.stats.proto.RecommendedEventProto;
 import ru.practicum.exception.ConflictException;
 import ru.practicum.exception.ValidationException;
 import ru.practicum.mapper.EventMapper;
@@ -44,6 +47,7 @@ public class EventPrivateServiceImpl implements EventPrivateService {
     private final CategoryClient categoryClient;
     private final UserClient userClient;
     private final RequestClient requestClient;
+    private final AnalyzerGrpcClient analyzerGrpcClient;
 
     @Override
     public List<EventShortDto> getAll(Long userId, Integer from, Integer size) {
@@ -52,25 +56,22 @@ public class EventPrivateServiceImpl implements EventPrivateService {
         Pageable pageable = PageRequest.of(from / size, size);
         List<Event> events = eventRepository.findAllByInitiatorId(userId, pageable).getContent();
 
-        Map<Long, Long> confirmedRequestsMap = new HashMap<>();
-        for (Event event : events) {
-            Long actualConfirmed = requestClient.getConfirmedRequestsCount(event.getId());
-            log.info("event.getId() ={}, actualConfirmed = {}", actualConfirmed, event.getId());
-            confirmedRequestsMap.put(event.getId(), actualConfirmed);
-        }
+        // Подверждённые заявки
+        Map<Long, Long> confirmedRequestsMap = events.stream()
+                .collect(Collectors.toMap(
+                        Event::getId,
+                        event -> requestClient.getConfirmedRequestsCount(event.getId())
+                ));
 
-        Set<Long> categoryIds = events.stream()
-                .map(Event::getCategoryId)
-                .collect(Collectors.toSet());
+        // Категории
+        Set<Long> categoryIds = events.stream().map(Event::getCategoryId).collect(Collectors.toSet());
+        Map<Long, CategoryDto> categoryMap = categoryIds.isEmpty() ? new HashMap<>() :
+                categoryClient.getCategoriesByIds(new ArrayList<>(categoryIds))
+                        .stream()
+                        .collect(Collectors.toMap(CategoryDto::getId, Function.identity()));
 
-        Map<Long, CategoryDto> categoryMap;
-        if (!categoryIds.isEmpty()) {
-            List<CategoryDto> categories = categoryClient.getCategoriesByIds(new ArrayList<>(categoryIds));
-            categoryMap = categories.stream()
-                    .collect(Collectors.toMap(CategoryDto::getId, Function.identity()));
-        } else {
-            categoryMap = new HashMap<>();
-        }
+        // Рейтинги
+        Map<Long, Double> ratings = fetchEventRatings(events);
 
         return events.stream()
                 .map(event -> {
@@ -79,10 +80,30 @@ public class EventPrivateServiceImpl implements EventPrivateService {
                             .name("[Current User]")
                             .build();
                     CategoryDto category = categoryMap.get(event.getCategoryId());
-                    return eventMapper.toEventShortDtoWithConfirmed(
+                    EventShortDto dto = eventMapper.toEventShortDtoWithConfirmed(
                             event, confirmedRequestsMap.get(event.getId()), author, category);
+                    dto.setRating(ratings.getOrDefault(event.getId(), 0.0));
+                    return dto;
                 })
                 .toList();
+    }
+
+    private Map<Long, Double> fetchEventRatings(List<Event> events) {
+        if (events.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        List<Long> eventIds = events.stream().map(Event::getId).toList();
+        InteractionsCountRequestProto request = InteractionsCountRequestProto.newBuilder()
+                .addAllEventId(eventIds)
+                .build();
+
+        return analyzerGrpcClient.getInteractionsCount(request)
+                .stream()
+                .collect(Collectors.toMap(
+                        RecommendedEventProto::getEventId,
+                        RecommendedEventProto::getScore
+                ));
     }
 
     @Override
@@ -117,14 +138,16 @@ public class EventPrivateServiceImpl implements EventPrivateService {
 
         UserShortDto author = userClient.getUserById(saved.getInitiatorId());
         CategoryDto category = categoryClient.getCategoryById(saved.getCategoryId());
+        EventFullDto dto = eventMapper.toEventFullDto(saved, author, category, locationMapper.toLocationDto(saved.getLocation()));
 
-        return eventMapper.toEventFullDto(saved, author, category, locationMapper.toLocationDto(saved.getLocation()));
+        dto.setRating(0.0);
+
+        return dto;
     }
 
     @Override
     public EventFullDto getByInitiatorId(Long userId, Long eventId) {
         userClient.getUserById(userId);
-
         Event event = eventPublicService.getById(eventId);
 
         UserShortDto author = userClient.getUserById(event.getInitiatorId());
@@ -132,7 +155,16 @@ public class EventPrivateServiceImpl implements EventPrivateService {
         Long confirmed = requestClient.getConfirmedRequestsCount(eventId);
         event.setConfirmedRequests(confirmed);
 
-        return eventMapper.toEventFullDto(event, author, category, locationMapper.toLocationDto(event.getLocation()));
+        EventFullDto dto = eventMapper.toEventFullDto(event, author, category, locationMapper.toLocationDto(event.getLocation()));
+
+        InteractionsCountRequestProto request = InteractionsCountRequestProto.newBuilder()
+                .addEventId(eventId)
+                .build();
+        List<RecommendedEventProto> responses = analyzerGrpcClient.getInteractionsCount(request);
+        double rating = responses.isEmpty() ? 0.0 : responses.getFirst().getScore();
+        dto.setRating(rating);
+
+        return dto;
     }
 
     @Override
@@ -190,8 +222,17 @@ public class EventPrivateServiceImpl implements EventPrivateService {
         Event updated = eventRepository.save(event);
         UserShortDto author = userClient.getUserById(updated.getInitiatorId());
         CategoryDto category = categoryClient.getCategoryById(updated.getCategoryId());
+        EventFullDto dto = eventMapper.toEventFullDto(updated, author, category, locationMapper.toLocationDto(updated.getLocation()));
 
-        return eventMapper.toEventFullDto(updated, author, category, locationMapper.toLocationDto(updated.getLocation()));
+        // Актуальный рейтинг
+        InteractionsCountRequestProto interactionsRequest = InteractionsCountRequestProto.newBuilder()
+                .addEventId(eventId)
+                .build();
+        List<RecommendedEventProto> ratingResponse = analyzerGrpcClient.getInteractionsCount(interactionsRequest);
+        double rating = ratingResponse.isEmpty() ? 0.0 : ratingResponse.getFirst().getScore();
+        dto.setRating(rating);
+
+        return dto;
     }
 
     @Override

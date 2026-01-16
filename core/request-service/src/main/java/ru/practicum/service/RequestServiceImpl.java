@@ -1,9 +1,11 @@
 package ru.practicum.service;
 
+import com.google.protobuf.Timestamp;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.client.CollectorGrpcClient;
 import ru.practicum.client.event.EventClient;
 import ru.practicum.client.user.UserClient;
 import ru.practicum.dto.event.EventFullDto;
@@ -12,11 +14,14 @@ import ru.practicum.dto.event.EventRequestStatusUpdateResult;
 import ru.practicum.dto.request.ParticipationRequestDto;
 import ru.practicum.dto.request.RequestStatus;
 import ru.practicum.entity.ParticipationRequest;
+import ru.practicum.ewm.stats.proto.ActionTypeProto;
+import ru.practicum.ewm.stats.proto.UserActionProto;
 import ru.practicum.exception.ConflictException;
 import ru.practicum.exception.NotFoundException;
 import ru.practicum.mapper.RequestMapper;
 import ru.practicum.repository.RequestRepository;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
@@ -32,6 +37,7 @@ public class RequestServiceImpl implements RequestService {
     private final UserClient userClient;
     private final EventClient eventClient;
     private final RequestMapper requestMapper;
+    private final CollectorGrpcClient collectorGrpcClient;
 
     @Override
     public ParticipationRequestDto findById(Long requestId) {
@@ -47,6 +53,8 @@ public class RequestServiceImpl implements RequestService {
     @Transactional
     public ParticipationRequestDto createRequest(Long userId, Long eventId) {
         log.info("Создание заявки: пользователь {} хочет присоединиться к событию {}", userId, eventId);
+
+        collectorGrpcClient.sendUserAction(createUserAction(eventId, userId, ActionTypeProto.ACTION_REGISTER, Instant.now()));
 
         userClient.getUserById(userId);
         EventFullDto event = eventClient.getEventFullById(eventId);
@@ -221,5 +229,22 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public Long getConfirmedRequestsCount(Long eventId) {
         return requestRepository.countConfirmedRequestsByEventId(eventId);
+    }
+
+    @Override
+    public boolean isUserTakePart(Long userId, Long eventId) {
+        return requestRepository.userTakePart(userId, eventId);
+    }
+
+    private UserActionProto createUserAction(Long eventId, Long userId, ActionTypeProto type, Instant timestamp) {
+        return UserActionProto.newBuilder()
+                .setUserId(userId)
+                .setEventId(eventId)
+                .setActionType(type)
+                .setTimestamp(Timestamp.newBuilder()
+                        .setSeconds(timestamp.getEpochSecond())
+                        .setNanos(timestamp.getNano())
+                        .build())
+                .build();
     }
 }

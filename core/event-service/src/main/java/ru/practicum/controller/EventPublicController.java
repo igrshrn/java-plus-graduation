@@ -27,7 +27,7 @@ import java.util.List;
 public class EventPublicController {
 
     private final EventPublicService eventPublicService;
-
+    private final static String USER_ID_HEADER = "X-EWM-USER-ID";
     @GetMapping
     public List<EventShortDto> getEvents(@RequestParam(required = false) @Size(min = 1, max = 7000) String text,
                                          @RequestParam(required = false) List<Long> categoryIds,
@@ -61,8 +61,20 @@ public class EventPublicController {
 
     @GetMapping("/{id}")
     public EventFullDto geEventById(@PathVariable @Positive Long id,
+                                    @RequestHeader(name = USER_ID_HEADER) Long userId,
                                     HttpServletRequest httpServletRequest) {
         log.info("Запрос на получение события id = {}", id);
-        return eventPublicService.getFullDtoById(id, httpServletRequest);
+        return eventPublicService.getFullDtoById(id, userId, httpServletRequest);
     }
+
+    @GetMapping("/recommendation")
+    public List<EventFullDto> getRecommendations(@RequestHeader(name = USER_ID_HEADER) Long userId) {
+        return eventPublicService.getRecommendations(userId);
+    }
+
+    @PutMapping("/{eventId}/like")
+    public void likeEvent(@PathVariable @Positive Long eventId, @RequestHeader(name = USER_ID_HEADER) Long userId) throws ValidationException {
+        eventPublicService.likeEvent(eventId, userId);
+    }
+
 }

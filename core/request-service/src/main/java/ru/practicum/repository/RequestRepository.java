@@ -18,4 +18,7 @@ public interface RequestRepository extends JpaRepository<ParticipationRequest, L
     boolean existsByEventIdAndRequesterId(Long eventId, Long requesterId);
 
     List<ParticipationRequest> findAllById(Iterable<Long> ids);
+
+    @Query("SELECT COUNT(p) > 0 FROM ParticipationRequest as p WHERE p.requesterId = :requesterId AND p.eventId = :eventId")
+    boolean userTakePart(Long requesterId, Long eventId);
 }

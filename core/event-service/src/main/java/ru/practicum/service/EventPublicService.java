@@ -13,7 +13,7 @@ public interface EventPublicService {
     List<EventShortDto> getAll(EventPublicFilter publicFilter, Integer from, Integer size,
                                HttpServletRequest httpServletRequest);
 
-    EventFullDto getFullDtoById(Long eventId, HttpServletRequest httpServletRequest);
+    EventFullDto getFullDtoById(Long eventId, Long userId, HttpServletRequest httpServletRequest);
 
     List<EventShortDto> getEventsShortByIds(List<Long> ids);
 
@@ -26,4 +26,8 @@ public interface EventPublicService {
     Long countEventsByCategoryId(Long categoryId);
 
     void updateConfirmedRequests(Long eventId, Long confirmedRequests);
+
+    List<EventFullDto> getRecommendations(Long userId);
+
+    void likeEvent(Long eventId, Long userId);
 }
