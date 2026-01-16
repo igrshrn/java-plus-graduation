@@ -31,4 +31,10 @@ public class RequestClientFallback implements RequestClient {
         log.warn("Request-service недоступен. Возвращаем 0 для confirmedRequests события {}", eventId);
         return 0L;
     }
+
+    @Override
+    public boolean isUserTakePart(Long userId, Long eventId) {
+        log.warn("Request-service недоступен. Возвращаем false для isUserTakePart пользователем {}, события {}", eventId, eventId);
+        return false;
+    }
 }

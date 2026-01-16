@@ -1,0 +1,33 @@
+grpc:
+  server:
+    port: 0
+
+spring:
+  sql:
+    init:
+      mode: always
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: Europe/Moscow
+
+  main:
+    banner-mode: off
+    log-startup-info: false
+
+  datasource:
+    driverClassName: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/analyzer_service
+    username: postgres
+    password: postgres
+
+kafka:
+  bootstrap-address: ${KAFKA_BOOTSTRAP_ADDRESS:localhost:9092}
+  topics:
+    user-action: stats.user-actions.v1
+    events-similarity: stats.events-similarity.v1

@@ -24,4 +24,6 @@ public interface RequestService {
     );
 
     Long getConfirmedRequestsCount(Long eventId);
+
+    boolean isUserTakePart(Long userId, Long eventId);
 }

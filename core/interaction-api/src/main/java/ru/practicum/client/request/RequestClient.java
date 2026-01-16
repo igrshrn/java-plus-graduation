@@ -29,4 +29,6 @@ public interface RequestClient {
     @GetMapping("/event/{eventId}/confirmed-count")
     Long getConfirmedRequestsCount(@PathVariable Long eventId);
 
+    @GetMapping("/{userId}/take/{eventId}")
+    boolean isUserTakePart(@PathVariable Long userId, @PathVariable Long eventId);
 }
